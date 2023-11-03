@@ -1,0 +1,19 @@
+[package]
+name = "astronote-core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+chrono = { version = "0.4", features = ["serde"] }
+typetag = "0.2"
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1.73"
+rand = "0.8.5"
+
+[dependencies.sqlx]
+version = "0.7"
+features = [ "runtime-tokio", "sqlite", "macros", "migrate", "chrono" ]
