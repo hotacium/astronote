@@ -105,5 +105,19 @@ pub mod sqlite {
 
             let mut _repo = NoteRepository { pool };
         }
+
+        #[tokio::test]
+        async fn insert_into_repository() {
+            let mut repo = NoteRepository::new("sqlite::memory:")
+                .await
+                .unwrap();
+            let note = SerializedNote {
+                id: 0,
+                absolute_path: String::from("test"),
+                next_datetime: chrono::NaiveDateTime::default(),
+                scheduler: serde_json::Value::Null,
+            };
+            let _id = repo.create(&note).await.unwrap();
+        }
     }
 }
