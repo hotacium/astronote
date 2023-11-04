@@ -13,7 +13,7 @@ pub mod prelude {
 
 
 use serde::{Serialize, Deserialize};
-use schedulers::SchedulingAlgorithm;
+use schedulers::{SchedulingAlgorithm, sm2::SuperMemo2};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
@@ -21,6 +21,23 @@ pub struct Note {
     absolute_path: String,
     next_datetime: chrono::NaiveDateTime,
     scheduler: Box<dyn SchedulingAlgorithm>,
+}
+
+impl Note {
+    pub fn new(id: i64, absolute_path: &str, next_datetime: &chrono::NaiveDateTime, scheduler: Box<dyn SchedulingAlgorithm>) -> Self {
+        Self {
+            id,
+            absolute_path: String::from(absolute_path),
+            next_datetime: next_datetime.clone(),
+            scheduler,
+        }
+    }
+
+    pub fn new_default(absolute_path: &str) -> Self {
+        let now = chrono::Local::now().naive_local();
+        let sm2 = Box::new(SuperMemo2::default());
+        Self::new(0, absolute_path, &now, sm2)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
