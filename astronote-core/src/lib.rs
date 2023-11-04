@@ -2,6 +2,15 @@
 pub mod schedulers;
 pub mod db;
 
+pub mod prelude {
+    pub use crate::schedulers::SchedulingAlgorithm;
+    pub use crate::Note;
+    pub use crate::SerializedNote;
+    pub mod sqlite {
+        pub use crate::db::sqlite::NoteRepository;
+    }
+}
+
 
 use serde::{Serialize, Deserialize};
 use schedulers::SchedulingAlgorithm;
