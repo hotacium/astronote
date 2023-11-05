@@ -17,10 +17,10 @@ use schedulers::{SchedulingAlgorithm, sm2::SuperMemo2};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
-    id: i64,
-    absolute_path: String,
-    next_datetime: chrono::NaiveDateTime,
-    scheduler: Box<dyn SchedulingAlgorithm>,
+    pub id: i64,
+    pub absolute_path: String,
+    pub next_datetime: chrono::NaiveDateTime,
+    pub scheduler: Box<dyn SchedulingAlgorithm>,
 }
 
 impl Note {
@@ -42,10 +42,10 @@ impl Note {
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SerializedNote {
-    id: i64,
-    absolute_path: String,
-    next_datetime: chrono::NaiveDateTime,
-    scheduler: serde_json::Value,
+    pub id: i64,
+    pub absolute_path: String,
+    pub next_datetime: chrono::NaiveDateTime,
+    pub scheduler: serde_json::Value,
 }
 
 impl TryFrom<Note> for SerializedNote {
