@@ -1,0 +1,16 @@
+[package]
+name = "astronote-cli"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+astronote-core = { path = "../astronote-core" }
+clap = { version = "4.4.3", features = ["derive"] }
+glob = "0.3.1"
+colored = "2"
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+rand = "0.8"
