@@ -56,12 +56,36 @@ impl Default for SuperMemo2 {
 
 #[typetag::serde]
 impl SchedulingAlgorithm for SuperMemo2 {
-    fn next_day(&mut self, response: u8) -> chrono::NaiveDateTime {
+    fn update_and_calculate_next_datetime(&mut self, response: u8) -> chrono::NaiveDateTime {
         let response = response.min(6); // todo
         self.update_repetition_interval(response);
         let interval = chrono::Days::new(self.interval as u64);
         let today = chrono::Local::now().naive_local();
         today.checked_add_days(interval).unwrap()
+    }
+    fn calculate_next_datetime(&self, response: u8) -> chrono::NaiveDateTime {
+        let response = response.min(6); // todo
+        let interval = calculate_interval(self.counter, self.easiness_factor, response);
+        let interval = chrono::Days::new(interval as u64);
+        let today = chrono::Local::now().naive_local();
+        today.checked_add_days(interval).unwrap()
+    }
+}
+
+fn calculate_interval(counter: i64, easiness_factor: f64, repetition_response: u8) -> i64 {
+    let counter = counter + 1;
+    match counter {
+        0 => unreachable!(), // todo
+        1 => SuperMemo2::INTERVAL_1ST_REPETITION,
+        2 => SuperMemo2::INTERVAL_2ND_REPETITION,
+        _n if _n >= 3 => {
+            if repetition_response < 3 {
+                return calculate_interval(0, easiness_factor, repetition_response);
+            }
+            let ef = easiness_factor;
+            (counter as f64 *ef).ceil() as i64
+        },
+        _ => unreachable!(), // todo
     }
 }
 
