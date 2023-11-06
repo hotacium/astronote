@@ -3,6 +3,7 @@ use astronote_cli::prompt;
 use astronote_core::{
     db::NoteDatabaseInterface,
     prelude::{sqlite::*, *},
+    schedulers::sm2::SuperMemo2,
 };
 use colored::Colorize;
 
@@ -65,13 +66,35 @@ async fn main() {
             reset,
         } => {
             // update note metadata
-        }
-        Commands::Reset { file } => {
-            // reset note metadata
-        }
-        Commands::Move { src, dst } => {
-            // move note
-            // may be not needed
+            let path = get_validated_absolute_path(&file)
+                .unwrap_or_else(|e| panic!("Error in converting path to str: {:?}: {}", file, e));
+            let mut note: Note = repo
+                .find_by_path(&path)
+                .await
+                .unwrap_or_else(|e| panic!("Error in finding note by path: {}", e))
+                .try_into()
+                .unwrap_or_else(|e| panic!("Error in deserializing note: {}", e));
+            if let Some(quality) = quality {
+                note.next_datetime = note
+                    .scheduler
+                    .update_and_calculate_next_datetime(quality as u8);
+            }
+            if let Some(next) = next {
+                note.next_datetime = chrono::Local::now()
+                    .naive_local()
+                    .checked_add_days(chrono::Days::new(next as u64))
+                    .unwrap_or_else(|| panic!("Error in adding days to datetime"));
+            }
+            if let Some(new_path) = new_path {
+                let new_path = get_validated_absolute_path(&new_path).unwrap_or_else(|e| {
+                    panic!("Error in converting path to str: {:?}: {}", new_path, e)
+                });
+                note.absolute_path = new_path;
+            }
+            if reset {
+                note.next_datetime = chrono::Local::now().naive_local();
+                note.scheduler = Box::new(SuperMemo2::default());
+            }
         }
         Commands::Review { num } => {
             // read `num` of note metadata

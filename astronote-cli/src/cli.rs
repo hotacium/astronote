@@ -51,20 +51,6 @@ pub enum Commands {
         #[arg(long)]
         reset: bool,
     },
-    /// resets repetition state of FILE
-    Reset {
-        /// target file
-        #[arg(short, long, value_name = "FILE")]
-        #[arg(value_parser = path_parser)]
-        file: Vec<PathBuf>,
-    },
-    /// updates path of FILE
-    Move {
-        #[arg(short, long, value_name = "FILE")]
-        src: PathBuf,
-        #[arg(short, long, value_name = "FILE")]
-        dst: PathBuf,
-    },
     /// starts reviewing
     Review {
         /// number of files to review
