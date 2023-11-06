@@ -35,21 +35,24 @@ pub mod sqlite {
     #[async_trait]
     impl NoteDatabaseInterface<SerializedNote> for NoteRepository {
         async fn create(&mut self, item: &SerializedNote) -> Result<i64> {
-            let id = sqlx::query("INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?)")
-                .bind(&item.absolute_path)
-                .bind(&item.next_datetime)
-                .bind(&item.scheduler)
-                .execute(&self.pool)
-                .await?
-                .last_insert_rowid();
+            let id = sqlx::query(
+                "INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?)",
+            )
+            .bind(&item.absolute_path)
+            .bind(&item.next_datetime)
+            .bind(&item.scheduler)
+            .execute(&self.pool)
+            .await?
+            .last_insert_rowid();
             Ok(id)
         }
 
         async fn find_by_path(&mut self, path: &str) -> Result<SerializedNote> {
-            let note = sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE absolute_path = ?")
-                .bind(path)
-                .fetch_one(&self.pool)
-                .await?;
+            let note =
+                sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE absolute_path = ?")
+                    .bind(path)
+                    .fetch_one(&self.pool)
+                    .await?;
             Ok(note)
         }
 
@@ -62,13 +65,15 @@ pub mod sqlite {
         }
 
         async fn update(&mut self, note: &SerializedNote) -> Result<()> {
-            sqlx::query("UPDATE notes SET absolute_path = ?, next_datetime = ?, scheduler = ? WHERE id = ?")
-                .bind(&note.absolute_path)
-                .bind(&note.next_datetime)
-                .bind(&note.scheduler)
-                .bind(&note.id)
-                .execute(&self.pool)
-                .await?;
+            sqlx::query(
+                "UPDATE notes SET absolute_path = ?, next_datetime = ?, scheduler = ? WHERE id = ?",
+            )
+            .bind(&note.absolute_path)
+            .bind(&note.next_datetime)
+            .bind(&note.scheduler)
+            .bind(&note.id)
+            .execute(&self.pool)
+            .await?;
             Ok(())
         }
 
@@ -81,10 +86,12 @@ pub mod sqlite {
         }
 
         async fn get_old_notes(&mut self, size: usize) -> Result<Vec<SerializedNote>> {
-            let notes = sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes ORDER BY next_datetime LIMIT ?")
-                .bind(size as u32)
-                .fetch_all(&self.pool)
-                .await?;
+            let notes = sqlx::query_as::<_, SerializedNote>(
+                "SELECT * FROM notes ORDER BY next_datetime LIMIT ?",
+            )
+            .bind(size as u32)
+            .fetch_all(&self.pool)
+            .await?;
             Ok(notes)
         }
     }
@@ -95,22 +102,15 @@ pub mod sqlite {
 
         #[tokio::test]
         async fn new_repository() {
-            let pool = SqlitePool::connect("sqlite::memory:")
-                .await
-                .unwrap();
-            sqlx::migrate!("./migrations")
-                .run(&pool)
-                .await
-                .unwrap();
+            let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
+            sqlx::migrate!("./migrations").run(&pool).await.unwrap();
 
             let mut _repo = NoteRepository { pool };
         }
 
         #[tokio::test]
         async fn insert_into_repository() {
-            let mut repo = NoteRepository::new("sqlite::memory:")
-                .await
-                .unwrap();
+            let mut repo = NoteRepository::new("sqlite::memory:").await.unwrap();
             let note = SerializedNote {
                 id: 0,
                 absolute_path: String::from("test"),

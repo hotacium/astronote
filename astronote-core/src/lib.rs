@@ -1,6 +1,5 @@
-
-pub mod schedulers;
 pub mod db;
+pub mod schedulers;
 
 pub mod prelude {
     pub use crate::schedulers::SchedulingAlgorithm;
@@ -11,9 +10,8 @@ pub mod prelude {
     }
 }
 
-
-use serde::{Serialize, Deserialize};
-use schedulers::{SchedulingAlgorithm, sm2::SuperMemo2};
+use schedulers::{sm2::SuperMemo2, SchedulingAlgorithm};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
@@ -24,7 +22,12 @@ pub struct Note {
 }
 
 impl Note {
-    pub fn new(id: i64, absolute_path: &str, next_datetime: &chrono::NaiveDateTime, scheduler: Box<dyn SchedulingAlgorithm>) -> Self {
+    pub fn new(
+        id: i64,
+        absolute_path: &str,
+        next_datetime: &chrono::NaiveDateTime,
+        scheduler: Box<dyn SchedulingAlgorithm>,
+    ) -> Self {
         Self {
             id,
             absolute_path: String::from(absolute_path),
@@ -50,7 +53,7 @@ pub struct SerializedNote {
 
 impl TryFrom<Note> for SerializedNote {
     type Error = serde_json::Error;
-    
+
     fn try_from(value: Note) -> Result<Self, Self::Error> {
         let serialized_scheduler = serde_json::to_value(value.scheduler)?;
         Ok(SerializedNote {
@@ -62,11 +65,12 @@ impl TryFrom<Note> for SerializedNote {
     }
 }
 
-impl TryInto<Note> for  SerializedNote {
+impl TryInto<Note> for SerializedNote {
     type Error = serde_json::Error;
 
     fn try_into(self) -> Result<Note, Self::Error> {
-        let deserialized_scheduler: Box<dyn SchedulingAlgorithm> = serde_json::from_value(self.scheduler)?;
+        let deserialized_scheduler: Box<dyn SchedulingAlgorithm> =
+            serde_json::from_value(self.scheduler)?;
         Ok(Note {
             id: self.id,
             absolute_path: self.absolute_path,
@@ -79,19 +83,22 @@ impl TryInto<Note> for  SerializedNote {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use schedulers::sm2::SuperMemo2;
     use chrono::NaiveDateTime;
     use rand::Rng;
+    use schedulers::sm2::SuperMemo2;
 
     #[test]
     fn serialize_note() {
-
         let mut rng = rand::thread_rng();
         let note = Note {
             id: 0,
             absolute_path: String::from("test"),
             next_datetime: NaiveDateTime::default(),
-            scheduler: Box::new(SuperMemo2::new(rng.gen_range(0..10), rng.gen_range(0..10), rng.gen_range(0.0..5.0))),
+            scheduler: Box::new(SuperMemo2::new(
+                rng.gen_range(0..10),
+                rng.gen_range(0..10),
+                rng.gen_range(0.0..5.0),
+            )),
         };
 
         let serialized_note: SerializedNote = note.try_into().unwrap();

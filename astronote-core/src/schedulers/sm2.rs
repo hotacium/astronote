@@ -1,5 +1,5 @@
 use crate::schedulers::SchedulingAlgorithm;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SuperMemo2 {
@@ -11,7 +11,7 @@ pub struct SuperMemo2 {
 impl SuperMemo2 {
     const INTERVAL_1ST_REPETITION: i64 = 1;
     const INTERVAL_2ND_REPETITION: i64 = 6;
-    
+
     pub fn new(counter: i64, interval: i64, easiness_factor: f64) -> Self {
         Self {
             counter,
@@ -32,8 +32,8 @@ impl SuperMemo2 {
                     return self.update_repetition_interval(repetition_response);
                 }
                 let ef = self.update_easiness_factor(repetition_response);
-                (self.interval as f64 *ef).ceil() as i64
-            },
+                (self.interval as f64 * ef).ceil() as i64
+            }
             _ => unreachable!(), // todo
         };
         self.interval
@@ -41,11 +41,10 @@ impl SuperMemo2 {
 
     fn update_easiness_factor(&mut self, repetition_response: u8) -> f64 {
         let q = f64::from(repetition_response.min(5)); // todo
-        self.easiness_factor += 0.1 - (5.0 - q)*(0.08 + (5.0 - q)*0.02);
+        self.easiness_factor += 0.1 - (5.0 - q) * (0.08 + (5.0 - q) * 0.02);
         self.easiness_factor = self.easiness_factor.max(1.3);
         self.easiness_factor
     }
-
 }
 
 impl Default for SuperMemo2 {
@@ -83,8 +82,8 @@ fn calculate_interval(counter: i64, easiness_factor: f64, repetition_response: u
                 return calculate_interval(0, easiness_factor, repetition_response);
             }
             let ef = easiness_factor;
-            (counter as f64 *ef).ceil() as i64
-        },
+            (counter as f64 * ef).ceil() as i64
+        }
         _ => unreachable!(), // todo
     }
 }
@@ -108,7 +107,7 @@ mod tests {
             let mut sm2 = SuperMemo2 {
                 counter: 1,
                 interval: 0,
-                easiness_factor: 2.5, 
+                easiness_factor: 2.5,
             };
             sm2.update_repetition_interval(i);
             assert_eq!(SuperMemo2::INTERVAL_2ND_REPETITION, sm2.interval);
@@ -137,11 +136,10 @@ mod tests {
     }
 
     fn create_3rd_repetition_status(easiness_factor: f64) -> SuperMemo2 {
-        SuperMemo2 { 
-            counter: 3, 
-            interval: 6, 
+        SuperMemo2 {
+            counter: 3,
+            interval: 6,
             easiness_factor,
         }
     }
 }
-
