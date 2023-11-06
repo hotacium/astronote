@@ -26,28 +26,14 @@ async fn main() {
 
     match parser.subcommand {
         Commands::Add { file } => {
-            let absolute_paths = file
-                .iter()
-                .map(|p| {
-                    p.canonicalize()
-                        .map_err(|e| panic!("Error in parseing path: {}", e))
-                })
-                .collect::<Result<Vec<_>>>()
-                .unwrap_or_else(|e| panic!("Error in validating path: {}", e));
-            let validated_paths = absolute_paths
-                .iter()
-                .map(validate_path)
-                .collect::<Result<Vec<_>>>() // collect once here to evaluate `validate_path` to check if all paths are valid
-                .unwrap_or_else(|e| panic!("Error in validating path: {}", e));
-
-            let serialized_notes: Vec<SerializedNote> = validated_paths
+            let serialized_notes: Vec<SerializedNote> = file
                 .into_iter()
                 .map(|path| {
                     // PathBuf -> Note
-                    let path = path
-                        .to_str()
-                        .unwrap_or_else(|| panic!("Error in converting path to str: {:?}", path));
-                    Note::new_default(path)
+                    let path = get_validated_absolute_path(&path).unwrap_or_else(|e| {
+                        panic!("Error in converting path to str: {:?}: {}", path, e)
+                    });
+                    Note::new_default(&path)
                 })
                 .map(|path| {
                     // Note -> SerializedNote
@@ -140,6 +126,20 @@ async fn main() {
 }
 
 use std::{path::PathBuf, process::Command};
+
+fn get_validated_absolute_path(path: &PathBuf) -> Result<String> {
+    let absolute_path = path.canonicalize()?;
+    absolute_path
+        .is_absolute()
+        .then(|| ())
+        .ok_or("Path is not absolute path after PathBuf::canonicalize()")?;
+    let validated_path = validate_path(&absolute_path)?;
+    let s = validated_path
+        .to_str()
+        .ok_or("Failed to convert &PathBuf to &str")?
+        .to_string();
+    Ok(s)
+}
 
 fn validate_path(path: &PathBuf) -> Result<&PathBuf> {
     path.try_exists()?
