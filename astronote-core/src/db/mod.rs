@@ -1,7 +1,58 @@
-use std::error::Error;
 use std::marker::Sync;
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 use async_trait::async_trait;
+use crate::SerializedNote;
+
+#[derive(Debug)]
+pub enum Error {
+    FailedToConect {
+        url: String,
+        source: sqlx::Error,
+    },
+    FailedToMigrate(sqlx::Error),
+    FailedToCreateNote(sqlx::Error),
+    FailedToFindNoteByPath{
+        path: String,
+        source: sqlx::Error
+    },
+    FailedToFindNoteById(sqlx::Error),
+    FailedToUpdateNote(sqlx::Error),
+    FailedToDeleteNote(sqlx::Error),
+    FailedToGetOldNotes(sqlx::Error),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::FailedToConect { url, source } => {
+                write!(f, "Failed to connect to database: {} {}", url, source)
+            }
+            Self::FailedToMigrate(source) => {
+                write!(f, "Failed to migrate database: {}", source)
+            }
+            Self::FailedToCreateNote(source) => {
+                write!(f, "Failed to create note: {}", source)
+            }
+            Self::FailedToFindNoteByPath { path, source } => {
+                write!(f, "Failed to find note by path: {} {}", path, source)
+            }
+            Self::FailedToFindNoteById(source) => {
+                write!(f, "Failed to find note by id: {}", source)
+            }
+            Self::FailedToUpdateNote(source) => {
+                write!(f, "Failed to update note: {}", source)
+            }
+            Self::FailedToDeleteNote(source) => {
+                write!(f, "Failed to delete note: {}", source)
+            }
+            Self::FailedToGetOldNotes(source) => {
+                write!(f, "Failed to get old notes: {}", source)
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+type Result<T> = std::result::Result<T, Error>;
 
 #[async_trait]
 pub trait NoteDatabaseInterface<Item: Sync> {
@@ -14,7 +65,6 @@ pub trait NoteDatabaseInterface<Item: Sync> {
 }
 
 pub mod sqlite {
-    use crate::SerializedNote;
 
     use super::*;
 
@@ -26,8 +76,15 @@ pub mod sqlite {
 
     impl NoteRepository {
         pub async fn new(url: &str) -> Result<Self> {
-            let pool = SqlitePool::connect(url).await?;
-            sqlx::migrate!("./migrations").run(&pool).await?;
+            let pool = SqlitePool::connect(url)
+                .await
+                .map_err(|e| Error::FailedToConect {
+                    url: url.to_string(),
+                    source: e,
+                })?;
+            sqlx::migrate!("./migrations").run(&pool)
+                .await
+                .map_err(|e| Error::FailedToMigrate(e.into()))?;
             Ok(NoteRepository { pool })
         }
     }
@@ -42,7 +99,8 @@ pub mod sqlite {
             .bind(&item.next_datetime)
             .bind(&item.scheduler)
             .execute(&self.pool)
-            .await?
+            .await
+            .map_err(|e| Error::FailedToCreateNote(e))?
             .last_insert_rowid();
             Ok(id)
         }
@@ -52,7 +110,11 @@ pub mod sqlite {
                 sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE absolute_path = ?")
                     .bind(path)
                     .fetch_one(&self.pool)
-                    .await?;
+                    .await
+                    .map_err(|e| Error::FailedToFindNoteByPath {
+                        path: path.to_string(),
+                        source: e,
+                    })?;
             Ok(note)
         }
 
@@ -60,7 +122,8 @@ pub mod sqlite {
             let note = sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE id = ?")
                 .bind(id)
                 .fetch_one(&self.pool)
-                .await?;
+                .await
+                .map_err(|e| Error::FailedToFindNoteById(e))?;
             Ok(note)
         }
 
@@ -73,7 +136,8 @@ pub mod sqlite {
             .bind(&note.scheduler)
             .bind(&note.id)
             .execute(&self.pool)
-            .await?;
+            .await
+            .map_err(|e| Error::FailedToUpdateNote(e))?;
             Ok(())
         }
 
@@ -81,7 +145,8 @@ pub mod sqlite {
             sqlx::query("DELETE FROM notes WHERE id = ?")
                 .bind(&note.id)
                 .execute(&self.pool)
-                .await?;
+                .await
+                .map_err(|e| Error::FailedToDeleteNote(e))?;
             Ok(())
         }
 
@@ -91,7 +156,8 @@ pub mod sqlite {
             )
             .bind(size as u32)
             .fetch_all(&self.pool)
-            .await?;
+            .await
+            .map_err(|e| Error::FailedToGetOldNotes(e))?;
             Ok(notes)
         }
     }
