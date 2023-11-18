@@ -7,41 +7,32 @@ use astronote_core::{
 };
 use colored::Colorize;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-
 #[tokio::main]
-async fn main() {
-    let url = "sqlite://astronote.db";
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
 
+    // parse command line arguments
     let parser = CommandParser::parse_args();
+
+    // use argument url if it is provided, otherwise use config file
     let url = parser
-        .database_url
+        .database_url()
         .unwrap_or_else(|| panic!("Error in parsing database url"));
-    let url = url
-        .to_str()
-        .unwrap_or_else(|| panic!("Error in converting database url to str"));
+    let mut repo = NoteRepository::new(&url)
+        .await?;
 
-    let mut repo = NoteRepository::new(url)
-        .await
-        .unwrap_or_else(|e| panic!("Error in connecting to repository: {}", e));
-
+    // main logic; subcommands
     match parser.subcommand {
+        // Add file metadata to DB
         Commands::Add { file } => {
+            // file paths into SerializedNote
             let serialized_notes: Vec<SerializedNote> = file
                 .into_iter()
-                .map(|path| {
-                    // PathBuf -> Note
-                    let path = get_validated_absolute_path(&path).unwrap_or_else(|e| {
-                        panic!("Error in converting path to str: {:?}: {}", path, e)
-                    });
-                    Note::new_default(&path)
-                })
-                .map(|path| {
-                    // Note -> SerializedNote
-                    SerializedNote::try_from(path)
-                        .unwrap_or_else(|e| panic!("Error in serializing note: {}", e))
-                })
-                .collect();
+                .map(|path| get_validated_absolute_path(&path))
+                .collect::<Result<Vec<String>, _>>()?
+                .into_iter()
+                .map(|validated_path| Note::new_default(&validated_path))
+                .map(|note| SerializedNote::try_from(note))
+                .collect::<Result<Vec<SerializedNote>, _>>()?;
 
             // store notes into DB
             for note in &serialized_notes {
@@ -50,6 +41,7 @@ async fn main() {
                     .unwrap_or_else(|e| panic!("Error in adding note to repository: {}", e));
             }
 
+            // print result
             println!(
                 "{} {} {}",
                 "Added".green(),
@@ -57,7 +49,7 @@ async fn main() {
                 "notes".green()
             );
         }
-
+        // update file metadata in DB
         Commands::Update {
             file,
             quality,
@@ -96,6 +88,7 @@ async fn main() {
                 note.scheduler = Box::new(SuperMemo2::default());
             }
         }
+        // main; review file in DB
         Commands::Review { num } => {
             // read `num` of note metadata
             let notes = repo
@@ -109,14 +102,16 @@ async fn main() {
                 })
                 .collect::<Vec<Note>>();
 
-            // for each file
+            // for each file, open it with editor and update the metadata accordingly
             for mut note in notes {
                 println!("{} {}", "Reviewing".green(), note.absolute_path);
 
+                // let users choose which editor to use
                 let program = prompt!(
                     "{}",
                     "Enter editor to continue (or CTRL+D to cancel): ".green()
                 );
+                // open the note with editor
                 Command::new(&program)
                     .arg(&note.absolute_path)
                     .status()
@@ -126,17 +121,20 @@ async fn main() {
                     .ok_or("Status is not success")
                     .unwrap_or_else(|e| panic!("Error in executing `{}`: {}", &program, e));
 
+                // update the metadata
                 let quality = input_quality(&note);
                 note.next_datetime = note
                     .scheduler
                     .update_and_calculate_next_datetime(quality as u8);
 
+                // store the updated metadata into DB
                 let serialized_note = SerializedNote::try_from(note)
                     .unwrap_or_else(|e| panic!("Error in serializing note: {}", e));
                 repo.update(&serialized_note)
                     .await
                     .unwrap_or_else(|e| panic!("Error in updating note: {}", e));
 
+                // print result
                 println!(
                     "{} {}",
                     "Next datetime:".green(),
@@ -146,11 +144,12 @@ async fn main() {
             }
         }
     }
+    Ok(())
 }
 
 use std::{path::PathBuf, process::Command};
 
-fn get_validated_absolute_path(path: &PathBuf) -> Result<String> {
+fn get_validated_absolute_path(path: &PathBuf) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
     let absolute_path = path.canonicalize()?;
     absolute_path
         .is_absolute()
@@ -164,12 +163,12 @@ fn get_validated_absolute_path(path: &PathBuf) -> Result<String> {
     Ok(s)
 }
 
-fn validate_path(path: &PathBuf) -> Result<&PathBuf> {
+fn validate_path(path: &PathBuf) -> Result<&PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
     path.try_exists()?
-        .then(|| ())
+        .then_some(())
         .ok_or("File does not exist")?;
     path.is_absolute()
-        .then(|| ())
+        .then_some(())
         .ok_or("Path is not absolute path")?;
     Ok(path)
 }
