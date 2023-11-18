@@ -1,14 +1,25 @@
 use astronote_cli::cli::{CommandParser, Commands};
 use astronote_cli::prompt;
+use astronote_cli::config::{Config, find_config};
 use astronote_core::{
     db::NoteDatabaseInterface,
     prelude::{sqlite::*, *},
     schedulers::sm2::SuperMemo2,
 };
 use colored::Colorize;
+use confy;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+
+    // load config file
+    let current_path = std::env::current_dir()?;
+    let config_path = find_config(&current_path)
+        .ok_or("Failed to find configuration file")?;
+    let config: Config = confy::load_path(config_path)?;
+    // use the following code to confirm the path of configuration file
+    // let file = confy::get_configuration_file_path("astronote", Some("config"))?;
+    // println!("Configuration file path: {:?}", file);
 
     // parse command line arguments
     let parser = CommandParser::parse_args();
@@ -16,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     // use argument url if it is provided, otherwise use config file
     let url = parser
         .database_url()
-        .unwrap_or_else(|| panic!("Error in parsing database url"));
+        .unwrap_or(config.database_url);
     let mut repo = NoteRepository::new(&url)
         .await?;
 
@@ -107,10 +118,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 println!("{} {}", "Reviewing".green(), note.absolute_path);
 
                 // let users choose which editor to use
-                let program = prompt!(
-                    "{}",
-                    "Enter editor to continue (or CTRL+D to cancel): ".green()
-                );
+                let program = match prompt!(
+                    "{} [{}]: ",
+                    "Enter editor to continue (or CTRL+D to cancel)".green(),
+                    config.editor_command,
+                ) {
+                    s if s.is_empty() => config.editor_command.clone(),
+                    s if !s.is_empty() => s,
+                    _ => unreachable!(),
+                };
                 // open the note with editor
                 Command::new(&program)
                     .arg(&note.absolute_path)
