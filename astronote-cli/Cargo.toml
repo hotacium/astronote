@@ -1,5 +1,5 @@
 [package]
-name = "astronote-cli"
+name = "astronote_cli"
 version = "0.1.0"
 edition = "2021"
 
@@ -16,3 +16,7 @@ confy = { version = "0.5", features = ["toml"] }
 
 [dev-dependencies]
 rand = "0.8"
+
+[[bin]]
+name = "astronote"
+path = "src/main.rs"

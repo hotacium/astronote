@@ -100,20 +100,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "astronote-cli"
-version = "0.1.0"
-dependencies = [
- "astronote-core",
- "chrono",
- "clap",
- "colored",
- "confy",
- "rand",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "astronote-core"
 version = "0.1.0"
 dependencies = [
@@ -125,6 +111,20 @@ dependencies = [
  "sqlx",
  "tokio",
  "typetag",
+]
+
+[[package]]
+name = "astronote_cli"
+version = "0.1.0"
+dependencies = [
+ "astronote-core",
+ "chrono",
+ "clap",
+ "colored",
+ "confy",
+ "rand",
+ "serde",
+ "tokio",
 ]
 
 [[package]]
