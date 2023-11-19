@@ -1,19 +1,13 @@
-use std::marker::Sync;
-use async_trait::async_trait;
 use crate::SerializedNote;
+use async_trait::async_trait;
+use std::marker::Sync;
 
 #[derive(Debug)]
 pub enum Error {
-    FailedToConect {
-        url: String,
-        source: sqlx::Error,
-    },
+    FailedToConect { url: String, source: sqlx::Error },
     FailedToMigrate(sqlx::Error),
     FailedToCreateNote(sqlx::Error),
-    FailedToFindNoteByPath{
-        path: String,
-        source: sqlx::Error
-    },
+    FailedToFindNoteByPath { path: String, source: sqlx::Error },
     FailedToFindNoteById(sqlx::Error),
     FailedToUpdateNote(sqlx::Error),
     FailedToDeleteNote(sqlx::Error),
@@ -82,7 +76,8 @@ pub mod sqlite {
                     url: url.to_string(),
                     source: e,
                 })?;
-            sqlx::migrate!("./migrations").run(&pool)
+            sqlx::migrate!("./migrations")
+                .run(&pool)
                 .await
                 .map_err(|e| Error::FailedToMigrate(e.into()))?;
             Ok(NoteRepository { pool })
