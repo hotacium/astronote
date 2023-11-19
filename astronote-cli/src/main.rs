@@ -1,6 +1,6 @@
 use astronote_cli::cli::{CommandParser, Commands};
+use astronote_cli::config::{find_config, Config};
 use astronote_cli::prompt;
-use astronote_cli::config::{Config, find_config};
 use astronote_core::{
     db::NoteDatabaseInterface,
     prelude::{sqlite::*, *},
@@ -11,11 +11,9 @@ use confy;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-
     // load config file
     let current_path = std::env::current_dir()?;
-    let config_path = find_config(&current_path)
-        .ok_or("Failed to find configuration file")?;
+    let config_path = find_config(&current_path).ok_or("Failed to find configuration file")?;
     let config: Config = confy::load_path(config_path)?;
     // use the following code to confirm the path of configuration file
     // let file = confy::get_configuration_file_path("astronote", Some("config"))?;
@@ -25,11 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     let parser = CommandParser::parse_args();
 
     // use argument url if it is provided, otherwise use config file
-    let url = parser
-        .database_url()
-        .unwrap_or(config.database_url);
-    let mut repo = NoteRepository::new(&url)
-        .await?;
+    let url = parser.database_url().unwrap_or(config.database_url);
+    let mut repo = NoteRepository::new(&url).await?;
 
     // main logic; subcommands
     match parser.subcommand {
@@ -165,7 +160,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
 use std::{path::PathBuf, process::Command};
 
-fn get_validated_absolute_path(path: &PathBuf) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
+fn get_validated_absolute_path(
+    path: &PathBuf,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
     let absolute_path = path.canonicalize()?;
     absolute_path
         .is_absolute()
@@ -179,7 +176,9 @@ fn get_validated_absolute_path(path: &PathBuf) -> Result<String, Box<dyn std::er
     Ok(s)
 }
 
-fn validate_path(path: &PathBuf) -> Result<&PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+fn validate_path(
+    path: &PathBuf,
+) -> Result<&PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
     path.try_exists()?
         .then_some(())
         .ok_or("File does not exist")?;

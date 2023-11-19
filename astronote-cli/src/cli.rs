@@ -4,14 +4,16 @@ use std::{io::Write, path::PathBuf};
 #[derive(Debug)]
 pub enum Error {
     DBURLNotFound,
-    URLIsNotValidUTF8(PathBuf)
+    URLIsNotValidUTF8(PathBuf),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::DBURLNotFound => write!(f, "Database URL is not found"),
-            Self::URLIsNotValidUTF8(path) => write!(f, "Database URL is not valid UTF-8: {:?}", path),
+            Self::URLIsNotValidUTF8(path) => {
+                write!(f, "Database URL is not valid UTF-8: {:?}", path)
+            }
         }
     }
 }
@@ -40,11 +42,8 @@ impl CommandParser {
         Self::parse()
     }
     pub fn database_url(&self) -> Result<String, Error> {
-        let url = self.database_url.as_ref()
-            .ok_or(Error::DBURLNotFound)?;
-        let url = url
-            .to_str()
-            .ok_or(Error::URLIsNotValidUTF8(url.clone()))?;
+        let url = self.database_url.as_ref().ok_or(Error::DBURLNotFound)?;
+        let url = url.to_str().ok_or(Error::URLIsNotValidUTF8(url.clone()))?;
         Ok(url.to_string())
     }
 }

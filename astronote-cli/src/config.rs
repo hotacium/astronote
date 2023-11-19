@@ -1,6 +1,5 @@
-
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -17,7 +16,6 @@ impl Default for Config {
     }
 }
 
-
 pub fn find_config(current_path: &PathBuf) -> Option<PathBuf> {
     let mut config_path = current_path.clone();
     config_path.push(".astronote.toml");
@@ -25,8 +23,7 @@ pub fn find_config(current_path: &PathBuf) -> Option<PathBuf> {
         return match current_path.parent() {
             Some(p) => find_config(&p.to_path_buf()),
             None => return None,
-        }
-
+        };
     }
     Some(config_path)
 }
