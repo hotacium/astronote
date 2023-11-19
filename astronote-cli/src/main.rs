@@ -42,9 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
             // store notes into DB
             for note in &serialized_notes {
-                repo.create(note)
-                    .await
-                    .unwrap_or_else(|e| panic!("Error in adding note to repository: {}", e));
+                repo.create(note).await?;
             }
 
             // print result
@@ -64,14 +62,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             reset,
         } => {
             // update note metadata
-            let path = get_validated_absolute_path(&file)
-                .unwrap_or_else(|e| panic!("Error in converting path to str: {:?}: {}", file, e));
+            let path = get_validated_absolute_path(&file)?;
             let mut note: Note = repo
                 .find_by_path(&path)
-                .await
-                .unwrap_or_else(|e| panic!("Error in finding note by path: {}", e))
-                .try_into()
-                .unwrap_or_else(|e| panic!("Error in deserializing note: {}", e));
+                .await?
+                .try_into()?;
             if let Some(quality) = quality {
                 note.next_datetime = note
                     .scheduler
@@ -81,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 note.next_datetime = chrono::Local::now()
                     .naive_local()
                     .checked_add_days(chrono::Days::new(next as u64))
-                    .unwrap_or_else(|| panic!("Error in adding days to datetime"));
+                    .ok_or("Error in adding days to datetime")?;
             }
             if let Some(new_path) = new_path {
                 let new_path = get_validated_absolute_path(&new_path).unwrap_or_else(|e| {
@@ -99,14 +94,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             // read `num` of note metadata
             let notes = repo
                 .get_old_notes(num)
-                .await
-                .unwrap_or_else(|e| panic!("Error in getting old notes: {}", e))
+                .await?
                 .into_iter()
                 .map(|note| {
                     SerializedNote::try_into(note)
-                        .unwrap_or_else(|e| panic!("Error in deserializing note: {}", e))
                 })
-                .collect::<Vec<Note>>();
+                .collect::<Result<Vec<Note>, _>>()?;
 
             // for each file, open it with editor and update the metadata accordingly
             for mut note in notes {
@@ -125,12 +118,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 // open the note with editor
                 Command::new(&program)
                     .arg(&note.absolute_path)
-                    .status()
-                    .unwrap_or_else(|e| panic!("Error in executing `{}`: {}", &program, e))
+                    .status()?
                     .success()
                     .then(|| ())
-                    .ok_or("Status is not success")
-                    .unwrap_or_else(|e| panic!("Error in executing `{}`: {}", &program, e));
+                    .ok_or("Status is not success")?;
 
                 // update the metadata
                 let quality = input_quality(&note);
@@ -139,11 +130,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                     .update_and_calculate_next_datetime(quality as u8);
 
                 // store the updated metadata into DB
-                let serialized_note = SerializedNote::try_from(note)
-                    .unwrap_or_else(|e| panic!("Error in serializing note: {}", e));
+                let serialized_note = SerializedNote::try_from(note)?;
                 repo.update(&serialized_note)
-                    .await
-                    .unwrap_or_else(|e| panic!("Error in updating note: {}", e));
+                    .await?;
 
                 // print result
                 println!(
