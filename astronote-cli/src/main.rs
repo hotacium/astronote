@@ -115,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 // let users choose which editor to use
                 let program = match prompt!(
                     "{} [{}]: ",
-                    "Enter editor to continue (or CTRL+D to cancel)".green(),
+                    "Enter editor to continue (or CTRL+C to cancel)".green(),
                     config.editor_command,
                 ) {
                     s if s.is_empty() => config.editor_command.clone(),
@@ -209,7 +209,7 @@ fn input_quality(note: &Note) -> u32 {
             println!("5: perfect response");
             println!("6: perfect response over multiple sessions");
             println!("");
-            println!("You can exist from astronote by pressing CTRL+D");
+            println!("You can exist from astronote by pressing CTRL+C");
             input_quality(note)
         }
         'n' => {
