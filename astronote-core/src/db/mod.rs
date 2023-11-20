@@ -89,7 +89,7 @@ pub mod sqlite {
     impl NoteDatabaseInterface<SerializedNote> for NoteRepository {
         async fn create(&mut self, item: &SerializedNote) -> Result<i64> {
             let id = sqlx::query(
-                "INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?)",
+                "INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?) ON CONFLICT(absolute_path) DO NOTHING",
             )
             .bind(&item.absolute_path)
             .bind(&item.next_datetime)
