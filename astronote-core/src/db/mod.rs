@@ -69,8 +69,9 @@ pub mod sqlite {
     }
 
     impl NoteRepository {
-        pub async fn new(url: &str) -> Result<Self> {
-            let pool = SqlitePool::connect(url)
+        pub async fn new(path: &str) -> Result<Self> {
+            let url = format!("sqlite://{}", path);
+            let pool = SqlitePool::connect(&url)
                 .await
                 .map_err(|e| Error::FailedToConect {
                     url: url.to_string(),

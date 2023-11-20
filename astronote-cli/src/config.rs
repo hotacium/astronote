@@ -3,14 +3,14 @@ use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub database_url: String,
+    pub database_path: String,
     pub editor_command: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            database_url: String::from("sqlite://astronote.db"),
+            database_path: String::from("astronote.db"),
             editor_command: String::from("vim"),
         }
     }

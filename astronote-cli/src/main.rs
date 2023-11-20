@@ -23,8 +23,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     let parser = CommandParser::parse_args();
 
     // use argument url if it is provided, otherwise use config file
-    let url = parser.database_url().unwrap_or(config.database_url);
-    let mut repo = NoteRepository::new(&url).await?;
+    let db_path = parser.database_path().unwrap_or(config.database_path);
+    // create DB file if it does not exist
+    if !std::path::Path::new(&db_path).exists() {
+        std::fs::File::create(&db_path)?;
+    }
+    // create DB connection
+    let mut repo = NoteRepository::new(&db_path).await?;
 
     // main logic; subcommands
     match parser.subcommand {
@@ -63,10 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         } => {
             // update note metadata
             let path = get_validated_absolute_path(&file)?;
-            let mut note: Note = repo
-                .find_by_path(&path)
-                .await?
-                .try_into()?;
+            let mut note: Note = repo.find_by_path(&path).await?.try_into()?;
             if let Some(quality) = quality {
                 note.next_datetime = note
                     .scheduler
@@ -96,9 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 .get_old_notes(num)
                 .await?
                 .into_iter()
-                .map(|note| {
-                    SerializedNote::try_into(note)
-                })
+                .map(|note| SerializedNote::try_into(note))
                 .collect::<Result<Vec<Note>, _>>()?;
 
             // for each file, open it with editor and update the metadata accordingly
@@ -131,8 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
                 // store the updated metadata into DB
                 let serialized_note = SerializedNote::try_from(note)?;
-                repo.update(&serialized_note)
-                    .await?;
+                repo.update(&serialized_note).await?;
 
                 // print result
                 println!(

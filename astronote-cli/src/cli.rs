@@ -34,15 +34,15 @@ impl std::error::Error for Error {
 pub struct CommandParser {
     #[command(subcommand)]
     pub subcommand: Commands,
-    pub database_url: Option<PathBuf>,
+    pub database_path: Option<PathBuf>,
 }
 
 impl CommandParser {
     pub fn parse_args() -> Self {
         Self::parse()
     }
-    pub fn database_url(&self) -> Result<String, Error> {
-        let url = self.database_url.as_ref().ok_or(Error::DBURLNotFound)?;
+    pub fn database_path(&self) -> Result<String, Error> {
+        let url = self.database_path.as_ref().ok_or(Error::DBURLNotFound)?;
         let url = url.to_str().ok_or(Error::URLIsNotValidUTF8(url.clone()))?;
         Ok(url.to_string())
     }
