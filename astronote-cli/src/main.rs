@@ -182,10 +182,13 @@ fn input_quality(note: &Note) -> u32 {
         "Enter quality of answer [0-6] (or `h` for help): ".green()
     );
     // todo: the following code evaluates only first char of input
-    let input_char = input
-        .chars()
-        .next()
-        .unwrap_or_else(|| panic!("Error in parsing quality: input is empty"));
+    let input_char = match input.chars().next() {
+        Some(c) => c,
+        None => {
+            println!("Empty input");
+            return input_quality(note)
+        }
+    };
     match input_char {
         'h' => {
             println!("{}", "Quality of answer is a number from 0 to 6".green());
