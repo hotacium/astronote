@@ -1,0 +1,61 @@
+[config]
+skip_core_tasks = true
+
+[tasks.format]
+alias = "format-all"
+
+[tasks.format-all]
+dependencies = [
+    "format-core",
+    "format-cli",
+]
+
+[tasks.format-core]
+cwd = "./astronote-core/"
+extend = "_format-crate"
+
+[tasks.format-cli]
+cwd = "./astronote-cli/"
+extend = "_format-crate"
+
+# internal template task (not intended for direct execution)
+[tasks._format-crate]
+command = "cargo"
+args = ["fmt"]
+
+[tasks.build]
+alias = "build-cli"
+
+[tasks.build-cli]
+cwd = "./astronote-cli/"
+command = "cargo"
+args = ["build"]
+
+[tasks.test]
+alias = "test-all"
+
+[tasks.test-all]
+dependencies = [
+    "test-core",
+    "test-cli",
+]
+
+[tasks.test-core]
+cwd = "./astronote-core/"
+extend = "_test-crate"
+
+[tasks.test-cli]
+cwd = "./astronote-cli/"
+extend = "_test-crate"
+
+# internal template task (not intended for direct execution)
+[tasks._test-crate]
+command = "cargo"
+args = ["test"]
+
+[tasks.install]
+alias = "install-cli"
+
+[tasks.install-cli]
+command = "cargo"
+args = ["install", "--path", "./astronote-cli/"]
