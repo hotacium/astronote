@@ -1,5 +1,5 @@
 use astronote_cli::cli::{CommandParser, Commands};
-use astronote_cli::config::{find_config, Config};
+use astronote_cli::config::Config;
 use astronote_cli::prompt;
 use astronote_core::{
     db::NoteDatabaseInterface,
@@ -7,17 +7,11 @@ use astronote_core::{
     schedulers::sm2::SuperMemo2,
 };
 use colored::Colorize;
-use confy;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // load config file
-    let current_path = std::env::current_dir()?;
-    let config_path = find_config(&current_path).ok_or("Failed to find configuration file")?;
-    let config: Config = confy::load_path(config_path)?;
-    // use the following code to confirm the path of configuration file
-    // let file = confy::get_configuration_file_path("astronote", Some("config"))?;
-    // println!("Configuration file path: {:?}", file);
+    let config = Config::try_new()?;
 
     // parse command line arguments
     let parser = CommandParser::parse_args();
@@ -186,7 +180,7 @@ fn input_quality(note: &Note) -> u32 {
         Some(c) => c,
         None => {
             println!("Empty input");
-            return input_quality(note)
+            return input_quality(note);
         }
     };
     match input_char {
