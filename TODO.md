@@ -1,6 +1,5 @@
 
 # TODO
-- [ ] Generate config file automatically if it does not exist.
 - [ ] Improve error handling
     - Error messages for user
 - [ ] Add plain-text database
