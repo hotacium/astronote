@@ -4,6 +4,7 @@ use std::marker::Sync;
 
 #[derive(Debug)]
 pub enum Error {
+    FailedToCreateDBFile(std::io::Error),
     FailedToConect { url: String, source: sqlx::Error },
     FailedToMigrate(sqlx::Error),
     FailedToCreateNote(sqlx::Error),
@@ -17,6 +18,9 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::FailedToCreateDBFile(source) => {
+                write!(f, "Failed to create database file: {}", source)
+            }
             Self::FailedToConect { url, source } => {
                 write!(f, "Failed to connect to database: {} {}", url, source)
             }
@@ -70,6 +74,11 @@ pub mod sqlite {
 
     impl NoteRepository {
         pub async fn new(path: &str) -> Result<Self> {
+            // create DB file if it does not exist
+            if !std::path::Path::new(&path).exists() {
+                std::fs::File::create(&path)
+                    .map_err(|e| Error::FailedToCreateDBFile(e))?;
+            }
             let url = format!("sqlite://{}", path);
             let pool = SqlitePool::connect(&url)
                 .await

@@ -18,10 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
     // use argument url if it is provided, otherwise use config file
     let db_path = parser.database_path().unwrap_or(config.database_path);
-    // create DB file if it does not exist
-    if !std::path::Path::new(&db_path).exists() {
-        std::fs::File::create(&db_path)?;
-    }
     // create DB connection
     let mut repo = NoteRepository::new(&db_path).await?;
 
