@@ -34,6 +34,7 @@ impl std::error::Error for Error {
 pub struct CommandParser {
     #[command(subcommand)]
     pub subcommand: Commands,
+    /// path to database (default: ./.astronote.db))
     pub database_path: Option<PathBuf>,
 }
 
