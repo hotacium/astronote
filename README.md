@@ -24,12 +24,6 @@ cargo install --path ./astronote-cli
 
 ## Usage
 
-Create `.astronote.toml` in your directory of files to review.
-```toml
-database_path = "/path/to/your/database/file"
-editor_command = "your_editor"
-```
-
 Add files.
 ```sh
 astronote add -f /path/to/file
@@ -38,4 +32,10 @@ astronote add -f /path/to/file
 Review them.
 ```sh
 astronote review -n <num>
+```
+
+You can create configuration file (`.config/astronote.toml`).
+```toml
+database_path = "/path/to/your/database/file"
+editor_command = "your_editor"
 ```
