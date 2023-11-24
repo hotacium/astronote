@@ -177,7 +177,7 @@ fn input_quality(note: &Note) -> u32 {
     };
     match input_char {
         'h' => {
-            println!("{}", "Quality of answer is a number from 0 to 6".green());
+            println!("Quality of answer is a number from 0 to 6");
             println!("0: complete blackout");
             println!("1: incorrect response; the correct one remembered");
             println!("2: incorrect response; where the correct one seemed easy to recall");
@@ -191,7 +191,7 @@ fn input_quality(note: &Note) -> u32 {
         }
         'n' => {
             // Show next datetime depending on quality of answer
-            println!("{}", "Next datetime for each quality of answer: ".green());
+            println!("Next datetime for each quality of answer: ");
             for i in 0..=6 {
                 let next_datetime = note.scheduler.calculate_next_datetime(i);
                 println!("{}: {}", i, next_datetime);
