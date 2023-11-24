@@ -142,14 +142,10 @@ fn get_validated_absolute_path(
     path: &PathBuf,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
     let absolute_path = path.canonicalize()?;
-    absolute_path
-        .is_absolute()
-        .then(|| ())
-        .ok_or("Path is not absolute path after PathBuf::canonicalize()")?;
+    assert!(absolute_path.is_absolute());
     let validated_path = validate_path(&absolute_path)?;
     let s = validated_path
-        .to_str()
-        .ok_or("Failed to convert &PathBuf to &str")?
+        .to_string_lossy() // already validated
         .to_string();
     Ok(s)
 }

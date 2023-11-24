@@ -12,7 +12,7 @@ impl std::fmt::Display for Error {
         match self {
             Self::DBURLNotFound => write!(f, "Database URL is not found"),
             Self::URLIsNotValidUTF8(path) => {
-                write!(f, "Database URL is not valid UTF-8: {:?}", path)
+                write!(f, "Database URL is not valid UTF-8: {}", path.to_string_lossy())
             }
         }
     }
