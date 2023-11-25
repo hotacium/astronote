@@ -27,12 +27,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         Commands::Add { file } => {
             // file paths into SerializedNote
             let serialized_notes: Vec<SerializedNote> = file
-                .into_iter()
-                .map(|path| get_validated_absolute_path(&path))
+                .iter()
+                .map(|path| get_validated_absolute_path(path))
                 .collect::<Result<Vec<String>, _>>()?
-                .into_iter()
-                .map(|validated_path| Note::new_default(&validated_path))
-                .map(|note| SerializedNote::try_from(note))
+                .iter()
+                .map(|validated_path| Note::new_default(validated_path))
+                .map(SerializedNote::try_from)
                 .collect::<Result<Vec<SerializedNote>, _>>()?;
 
             // store notes into DB
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             }
             if reset {
                 note.next_datetime = chrono::Local::now().naive_local();
-                note.scheduler = Box::new(SuperMemo2::default());
+                note.scheduler = Box::<SuperMemo2>::default();
             }
         }
         // main; review file in DB
@@ -88,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 .get_old_notes(num)
                 .await?
                 .into_iter()
-                .map(|note| SerializedNote::try_into(note))
+                .map(SerializedNote::try_into)
                 .collect::<Result<Vec<Note>, _>>()?;
 
             // for each file, open it with editor and update the metadata accordingly
@@ -110,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                     .arg(&note.absolute_path)
                     .status()?
                     .success()
-                    .then(|| ())
+                    .then_some(())
                     .ok_or("Status is not success")?;
 
                 // update the metadata
@@ -129,17 +129,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                     "Next datetime:".green(),
                     &serialized_note.next_datetime
                 );
-                println!("")
+                println!()
             }
         }
     }
     Ok(())
 }
 
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 fn get_validated_absolute_path(
-    path: &PathBuf,
+    path: &Path,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
     let absolute_path = path.canonicalize()?;
     assert!(absolute_path.is_absolute());
@@ -185,7 +188,7 @@ fn input_quality(note: &Note) -> u32 {
             println!("4: correct response after a hesitation");
             println!("5: perfect response");
             println!("6: perfect response over multiple sessions");
-            println!("");
+            println!();
             println!("You can exist from astronote by pressing CTRL+C");
             input_quality(note)
         }

@@ -76,8 +76,7 @@ pub mod sqlite {
         pub async fn new(path: &str) -> Result<Self> {
             // create DB file if it does not exist
             if !std::path::Path::new(&path).exists() {
-                std::fs::File::create(&path)
-                    .map_err(|e| Error::FailedToCreateDBFile(e))?;
+                std::fs::File::create(path).map_err(Error::FailedToCreateDBFile)?;
             }
             let url = format!("sqlite://{}", path);
             let pool = SqlitePool::connect(&url)
@@ -101,11 +100,11 @@ pub mod sqlite {
                 "INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?) ON CONFLICT(absolute_path) DO NOTHING",
             )
             .bind(&item.absolute_path)
-            .bind(&item.next_datetime)
+            .bind(item.next_datetime)
             .bind(&item.scheduler)
             .execute(&self.pool)
             .await
-            .map_err(|e| Error::FailedToCreateNote(e))?
+            .map_err(Error::FailedToCreateNote)?
             .last_insert_rowid();
             Ok(id)
         }
@@ -128,7 +127,7 @@ pub mod sqlite {
                 .bind(id)
                 .fetch_one(&self.pool)
                 .await
-                .map_err(|e| Error::FailedToFindNoteById(e))?;
+                .map_err(Error::FailedToFindNoteById)?;
             Ok(note)
         }
 
@@ -137,21 +136,21 @@ pub mod sqlite {
                 "UPDATE notes SET absolute_path = ?, next_datetime = ?, scheduler = ? WHERE id = ?",
             )
             .bind(&note.absolute_path)
-            .bind(&note.next_datetime)
+            .bind(note.next_datetime)
             .bind(&note.scheduler)
-            .bind(&note.id)
+            .bind(note.id)
             .execute(&self.pool)
             .await
-            .map_err(|e| Error::FailedToUpdateNote(e))?;
+            .map_err(Error::FailedToUpdateNote)?;
             Ok(())
         }
 
         async fn delete(&mut self, note: &SerializedNote) -> Result<()> {
             sqlx::query("DELETE FROM notes WHERE id = ?")
-                .bind(&note.id)
+                .bind(note.id)
                 .execute(&self.pool)
                 .await
-                .map_err(|e| Error::FailedToDeleteNote(e))?;
+                .map_err(Error::FailedToDeleteNote)?;
             Ok(())
         }
 
@@ -162,7 +161,7 @@ pub mod sqlite {
             .bind(size as u32)
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| Error::FailedToGetOldNotes(e))?;
+            .map_err(Error::FailedToGetOldNotes)?;
             Ok(notes)
         }
     }

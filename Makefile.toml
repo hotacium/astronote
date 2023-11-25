@@ -23,6 +23,29 @@ extend = "_format-crate"
 command = "cargo"
 args = ["fmt"]
 
+[tasks.clippy]
+alias = "clippy-all"
+
+[tasks.clippy-all]
+dependencies = [
+    "clippy-core",
+    "clippy-cli",
+]
+
+[tasks.clippy-core]
+cwd = "./astronote-core/"
+extend = "_clippy-crate"
+
+[tasks.clippy-cli]
+cwd = "./astronote-cli/"
+extend = "_clippy-crate"
+
+# internal template task (not intended for direct execution)
+[tasks._clippy-crate]
+command = "cargo"
+args = ["clippy"]
+
+
 [tasks.build]
 alias = "build-cli"
 

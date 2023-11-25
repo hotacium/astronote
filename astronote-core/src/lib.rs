@@ -31,14 +31,14 @@ impl Note {
         Self {
             id,
             absolute_path: String::from(absolute_path),
-            next_datetime: next_datetime.clone(),
+            next_datetime: *next_datetime,
             scheduler,
         }
     }
 
     pub fn new_default(absolute_path: &str) -> Self {
         let now = chrono::Local::now().naive_local();
-        let sm2 = Box::new(SuperMemo2::default());
+        let sm2 = Box::<SuperMemo2>::default();
         Self::new(0, absolute_path, &now, sm2)
     }
 }
