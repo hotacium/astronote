@@ -17,6 +17,7 @@ figment = { version = "0.10", features = ["toml"] }
 
 [dev-dependencies]
 rand = "0.8"
+tempdir = "0.3"
 
 [[bin]]
 name = "astronote"

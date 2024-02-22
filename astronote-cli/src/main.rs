@@ -12,6 +12,8 @@ use colored::Colorize;
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     // load config file
     let config = Config::try_new()?;
+    
+    let config_root = Path::new(&config.root).canonicalize()?;
 
     // parse command line arguments
     let parser = CommandParser::parse_args();
@@ -28,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             // file paths into SerializedNote
             let serialized_notes: Vec<SerializedNote> = file
                 .iter()
-                .map(|path| get_validated_absolute_path(path))
+                .map(|path| get_validated_path(path, &config_root))
                 .collect::<Result<Vec<String>, _>>()?
                 .iter()
                 .map(|validated_path| Note::new_default(validated_path))
@@ -57,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             reset,
         } => {
             // update note metadata
-            let path = get_validated_absolute_path(&file)?;
+            let path = get_validated_path(&file, &config_root)?;
             let mut note: Note = repo.find_by_path(&path).await?.try_into()?;
             if let Some(quality) = quality {
                 note.next_datetime = note
@@ -71,10 +73,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                     .ok_or("Error in adding days to datetime")?;
             }
             if let Some(new_path) = new_path {
-                let new_path = get_validated_absolute_path(&new_path).unwrap_or_else(|e| {
+                let new_path = get_validated_path(&new_path, &config_root).unwrap_or_else(|e| {
                     panic!("Error in converting path to str: {:?}: {}", new_path, e)
                 });
-                note.absolute_path = new_path;
+                note.relative_path = new_path;
             }
             if reset {
                 note.next_datetime = chrono::Local::now().naive_local();
@@ -93,7 +95,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
             // for each file, open it with editor and update the metadata accordingly
             for mut note in notes {
-                println!("{} {}", "Reviewing".green(), note.absolute_path);
+                let validated_path = get_validated_path(&Path::new(&note.relative_path), &config_root)?;
+                let absolute_path = Path::new(&validated_path).canonicalize()?;
+                println!("{} {}", "Reviewing".green(), absolute_path.to_str().unwrap());
 
                 // let users choose which editor to use
                 let program = match prompt!(
@@ -107,7 +111,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 };
                 // open the note with editor
                 Command::new(&program)
-                    .arg(&note.absolute_path)
+                    // .arg(&absolute_path)
+                    .arg(&validated_path)
                     .status()?
                     .success()
                     .then_some(())
@@ -136,33 +141,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     Ok(())
 }
 
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{path::Path, process::Command};
 
-fn get_validated_absolute_path(
+fn get_validated_path(
     path: &Path,
+    root: &Path,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let absolute_path = path.canonicalize()?;
-    assert!(absolute_path.is_absolute());
-    let validated_path = validate_path(&absolute_path)?;
-    let s = validated_path
+    let absolute_path = root.join(&path);
+    if !absolute_path.try_exists()? {
+        return Err(format!(
+            "File does not exist. Maybe file path is not under astronote `root`. Hint: root: {}, path: {}", 
+            root.to_str().unwrap(), 
+            path.to_str().unwrap(),
+        ).into())
+    }
+    let s = absolute_path.strip_prefix(&root)?
         .to_string_lossy() // already validated
         .to_string();
     Ok(s)
-}
-
-fn validate_path(
-    path: &PathBuf,
-) -> Result<&PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    path.try_exists()?
-        .then_some(())
-        .ok_or("File does not exist")?;
-    path.is_absolute()
-        .then_some(())
-        .ok_or("Path is not absolute path")?;
-    Ok(path)
 }
 
 fn input_quality(note: &Note) -> u32 {

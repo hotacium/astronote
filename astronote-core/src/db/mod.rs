@@ -97,9 +97,9 @@ pub mod sqlite {
     impl NoteDatabaseInterface<SerializedNote> for NoteRepository {
         async fn create(&mut self, item: &SerializedNote) -> Result<i64> {
             let id = sqlx::query(
-                "INSERT INTO notes (absolute_path, next_datetime, scheduler) VALUES (?, ?, ?) ON CONFLICT(absolute_path) DO NOTHING",
+                "INSERT INTO notes (relative_path, next_datetime, scheduler) VALUES (?, ?, ?) ON CONFLICT(relative_path) DO NOTHING",
             )
-            .bind(&item.absolute_path)
+            .bind(&item.relative_path)
             .bind(item.next_datetime)
             .bind(&item.scheduler)
             .execute(&self.pool)
@@ -111,7 +111,7 @@ pub mod sqlite {
 
         async fn find_by_path(&mut self, path: &str) -> Result<SerializedNote> {
             let note =
-                sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE absolute_path = ?")
+                sqlx::query_as::<_, SerializedNote>("SELECT * FROM notes WHERE relative_path = ?")
                     .bind(path)
                     .fetch_one(&self.pool)
                     .await
@@ -133,9 +133,9 @@ pub mod sqlite {
 
         async fn update(&mut self, note: &SerializedNote) -> Result<()> {
             sqlx::query(
-                "UPDATE notes SET absolute_path = ?, next_datetime = ?, scheduler = ? WHERE id = ?",
+                "UPDATE notes SET relative_path = ?, next_datetime = ?, scheduler = ? WHERE id = ?",
             )
-            .bind(&note.absolute_path)
+            .bind(&note.relative_path)
             .bind(note.next_datetime)
             .bind(&note.scheduler)
             .bind(note.id)
@@ -183,7 +183,7 @@ pub mod sqlite {
             let mut repo = NoteRepository::new("sqlite::memory:").await.unwrap();
             let note = SerializedNote {
                 id: 0,
-                absolute_path: String::from("test"),
+                relative_path: String::from("test"),
                 next_datetime: chrono::NaiveDateTime::default(),
                 scheduler: serde_json::Value::Null,
             };

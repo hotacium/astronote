@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
     pub id: i64,
-    pub absolute_path: String,
+    pub relative_path: String,
     pub next_datetime: chrono::NaiveDateTime,
     pub scheduler: Box<dyn SchedulingAlgorithm>,
 }
@@ -24,29 +24,29 @@ pub struct Note {
 impl Note {
     pub fn new(
         id: i64,
-        absolute_path: &str,
+        relative_path: &str,
         next_datetime: &chrono::NaiveDateTime,
         scheduler: Box<dyn SchedulingAlgorithm>,
     ) -> Self {
         Self {
             id,
-            absolute_path: String::from(absolute_path),
+            relative_path: String::from(relative_path),
             next_datetime: *next_datetime,
             scheduler,
         }
     }
 
-    pub fn new_default(absolute_path: &str) -> Self {
+    pub fn new_default(relative_path: &str) -> Self {
         let now = chrono::Local::now().naive_local();
         let sm2 = Box::<SuperMemo2>::default();
-        Self::new(0, absolute_path, &now, sm2)
+        Self::new(0, relative_path, &now, sm2)
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SerializedNote {
     pub id: i64,
-    pub absolute_path: String,
+    pub relative_path: String,
     pub next_datetime: chrono::NaiveDateTime,
     pub scheduler: serde_json::Value,
 }
@@ -58,7 +58,7 @@ impl TryFrom<Note> for SerializedNote {
         let serialized_scheduler = serde_json::to_value(value.scheduler)?;
         Ok(SerializedNote {
             id: value.id,
-            absolute_path: value.absolute_path,
+            relative_path: value.relative_path,
             next_datetime: value.next_datetime,
             scheduler: serialized_scheduler,
         })
@@ -73,7 +73,7 @@ impl TryInto<Note> for SerializedNote {
             serde_json::from_value(self.scheduler)?;
         Ok(Note {
             id: self.id,
-            absolute_path: self.absolute_path,
+            relative_path: self.relative_path,
             next_datetime: self.next_datetime,
             scheduler: deserialized_scheduler,
         })
@@ -92,7 +92,7 @@ mod tests {
         let mut rng = rand::thread_rng();
         let note = Note {
             id: 0,
-            absolute_path: String::from("test"),
+            relative_path: String::from("test"),
             next_datetime: NaiveDateTime::default(),
             scheduler: Box::new(SuperMemo2::new(
                 rng.gen_range(0..10),
