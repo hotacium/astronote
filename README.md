@@ -34,8 +34,8 @@ Review them.
 astronote review -n <num>
 ```
 
-You can create configuration file (`.config/astronote.toml`).
+You can create configuration file (`.astronote.toml`).
 ```toml
 database_path = "/path/to/your/database/file"
-editor_command = "your_editor"
+editor_command = "your_favorite_editor"
 ```
