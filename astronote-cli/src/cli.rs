@@ -60,7 +60,7 @@ pub enum Commands {
         /// target file
         #[arg(short, long, value_name = "FILE", required = true)]
         #[arg(num_args = 1.., value_delimiter = ' ')]
-        file: Vec<PathBuf>,
+        files: Vec<PathBuf>,
     },
     /// updates repetition state of FILE
     Update {

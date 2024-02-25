@@ -1,9 +1,9 @@
 use astronote_cli::cli::{CommandParser, Commands};
 use astronote_cli::config::Config;
 use astronote_cli::prompt;
+use astronote_core::Note;
 use astronote_core::{
-    db::NoteDatabaseInterface,
-    prelude::{sqlite::*, *},
+    db::ron::*,
     schedulers::sm2::SuperMemo2,
 };
 use colored::Colorize;
@@ -21,32 +21,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     // use argument url if it is provided, otherwise use config file
     let db_path = parser.database_path().unwrap_or(config.database_path);
     // create DB connection
-    let mut repo = NoteRepository::new(&db_path).await?;
+    let db_path = PathBuf::from(&db_path);
+    let repo = NoteRepository::new(&db_path)?;
 
     // main logic; subcommands
     match parser.subcommand {
         // Add file metadata to DB
-        Commands::Add { file } => {
-            // file paths into SerializedNote
-            let serialized_notes: Vec<SerializedNote> = file
+        Commands::Add { files } => {
+            // validate file paths
+            let validated_pathes = files
                 .iter()
-                .map(|path| get_validated_path(path, &config_root))
-                .collect::<Result<Vec<String>, _>>()?
+                .map(|path| get_validated_path(path, &config_root) )
+                .collect::<Result<Vec<_>, _>>()?;
+            // note from validated file
+            let notes = validated_pathes
                 .iter()
-                .map(|validated_path| Note::new_default(validated_path))
-                .map(SerializedNote::try_from)
-                .collect::<Result<Vec<SerializedNote>, _>>()?;
-
-            // store notes into DB
-            for note in &serialized_notes {
-                repo.create(note).await?;
-            }
-
+                .map(|path| Note::new_default(path.to_str().unwrap()) )
+                .collect::<Vec<Note>>();
+            repo.create(notes)?;
             // print result
             println!(
                 "{} {} {}",
                 "Added".green(),
-                serialized_notes.len(),
+                files.len(),
                 "notes".green()
             );
         }
@@ -60,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         } => {
             // update note metadata
             let path = get_validated_path(&file, &config_root)?;
-            let mut note: Note = repo.find_by_path(&path).await?.try_into()?;
+            let mut note: Note = repo.get_one(&path)?;
             if let Some(quality) = quality {
                 note.next_datetime = note
                     .scheduler
@@ -76,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 let new_path = get_validated_path(&new_path, &config_root).unwrap_or_else(|e| {
                     panic!("Error in converting path to str: {:?}: {}", new_path, e)
                 });
-                note.relative_path = new_path;
+                note.relative_path = new_path.to_string_lossy().to_string();
             }
             if reset {
                 note.next_datetime = chrono::Local::now().naive_local();
@@ -86,13 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         // main; review file in DB
         Commands::Review { num } => {
             // read `num` of note metadata
-            let notes = repo
-                .get_old_notes(num)
-                .await?
-                .into_iter()
-                .map(SerializedNote::try_into)
-                .collect::<Result<Vec<Note>, _>>()?;
-
+            let mut notes = repo.get_all()?;
             // for each file, open it with editor and update the metadata accordingly
             for mut note in notes {
                 let validated_path = get_validated_path(&Path::new(&note.relative_path), &config_root)?;
@@ -124,30 +115,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                     .scheduler
                     .update_and_calculate_next_datetime(quality as u8);
 
-                // store the updated metadata into DB
-                let serialized_note = SerializedNote::try_from(note)?;
-                repo.update(&serialized_note).await?;
-
                 // print result
                 println!(
                     "{} {}",
                     "Next datetime:".green(),
-                    &serialized_note.next_datetime
+                    &note.next_datetime
                 );
-                println!()
+                println!();
+
+                // store the updated metadata into DB
+                repo.create(vec![note])?;
             }
         }
     }
     Ok(())
 }
 
+use std::fs::canonicalize;
+use std::path::PathBuf;
 use std::{path::Path, process::Command};
 
 fn get_validated_path(
     path: &Path,
     root: &Path,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let absolute_path = root.join(&path);
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let absolute_path = canonicalize(path)?;
     if !absolute_path.try_exists()? {
         return Err(format!(
             "File does not exist. Maybe file path is not under astronote `root`. Hint: root: {}, path: {}", 
@@ -155,10 +147,11 @@ fn get_validated_path(
             path.to_str().unwrap(),
         ).into())
     }
-    let s = absolute_path.strip_prefix(&root)?
-        .to_string_lossy() // already validated
-        .to_string();
-    Ok(s)
+    let path = absolute_path.strip_prefix(&root)?;
+    println!("stripped path: {:?}", path); // debug
+        // .to_string_lossy() // already validated
+        // .to_string();
+    Ok(PathBuf::from(path))
 }
 
 fn input_quality(note: &Note) -> u32 {

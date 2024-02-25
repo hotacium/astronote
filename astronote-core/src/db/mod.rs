@@ -1,4 +1,4 @@
-
+pub mod ron;
 pub mod sqlite;
 
 use async_trait::async_trait;
@@ -63,4 +63,3 @@ pub trait NoteDatabaseInterface<Item: Sync> {
     async fn delete(&mut self, item: &Item) -> Result<()>;
     async fn get_old_notes(&mut self, size: usize) -> Result<Vec<Item>>;
 }
-
