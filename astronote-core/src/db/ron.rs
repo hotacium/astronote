@@ -39,11 +39,20 @@ impl NoteRepository {
     }
 
     pub fn create(&self, notes: Vec<Note>) -> Result<()> {
-        println!("notes: {:?}", notes);
         let _result = notes
             .into_iter()
             // filter out existing metadata
             .filter(|note| !get_metadata_path_from_note(&note, &self.database_dir).exists())
+            .map(|note| write_metadata(note, &self.database_dir))
+            .collect::<Result<Vec<_>>>()?;
+        return Ok(());
+    }
+
+    pub fn update(&self, notes: Vec<Note>) -> Result<()> {
+        let _result = notes
+            .into_iter()
+            // filter out not-existing metadata
+            .filter(|note| get_metadata_path_from_note(&note, &self.database_dir).exists())
             .map(|note| write_metadata(note, &self.database_dir))
             .collect::<Result<Vec<_>>>()?;
         return Ok(());

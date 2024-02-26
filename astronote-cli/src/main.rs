@@ -8,8 +8,10 @@ use astronote_core::{
 };
 use colored::Colorize;
 
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+async fn main() -> Result<()> {
     // load config file
     let config = Config::try_new()?;
     
@@ -32,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             let validated_pathes = files
                 .iter()
                 .map(|path| get_validated_path(path, &config_root) )
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>>>()?;
             // note from validated file
             let notes = validated_pathes
                 .iter()
@@ -82,8 +84,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         }
         // main; review file in DB
         Commands::Review { num } => {
-            // read `num` of note metadata
-            let mut notes = repo.get_all()?;
+            // get `num` of old notes
+            let notes: Vec<Note> = {
+                let mut notes = repo.get_all()?;
+                notes.sort_by_key(|note| note.next_datetime);
+                let now = chrono::Local::now().naive_local();
+                let notes_to_review = notes.into_iter()
+                    .filter(|note| note.next_datetime <= now )
+                    .inspect(|note| {
+                        println!("next: {:?}", note.next_datetime);
+                        println!("now: {:?}", now);
+                    })
+                    .take(num)
+                    .collect::<Vec<_>>();
+                Result::Ok(notes_to_review)
+            }?;
+            if notes.len() < 1 {
+                println!("There is no file to review (for now)!");
+                return Ok(());
+            }
             // for each file, open it with editor and update the metadata accordingly
             for mut note in notes {
                 let validated_path = get_validated_path(&Path::new(&note.relative_path), &config_root)?;
@@ -124,7 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 println!();
 
                 // store the updated metadata into DB
-                repo.create(vec![note])?;
+                repo.update(vec![note])?;
             }
         }
     }
@@ -138,7 +157,7 @@ use std::{path::Path, process::Command};
 fn get_validated_path(
     path: &Path,
     root: &Path,
-) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+) -> Result<PathBuf> {
     let absolute_path = canonicalize(path)?;
     if !absolute_path.try_exists()? {
         return Err(format!(
