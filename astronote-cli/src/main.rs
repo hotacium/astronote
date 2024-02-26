@@ -37,15 +37,17 @@ async fn main() -> Result<()> {
                 .collect::<Result<Vec<_>>>()?;
             // note from validated file
             let notes = validated_pathes
-                .iter()
+                .into_iter()
+                .filter(|path| path.is_file())
                 .map(|path| Note::new_default(path.to_str().unwrap()) )
                 .collect::<Vec<Note>>();
+            let len = notes.len();
             repo.create(notes)?;
             // print result
             println!(
                 "{} {} {}",
                 "Added".green(),
-                files.len(),
+                len,
                 "notes".green()
             );
         }
