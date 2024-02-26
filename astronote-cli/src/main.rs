@@ -93,10 +93,6 @@ async fn main() -> Result<()> {
                 let now = chrono::Local::now().naive_local();
                 let notes_to_review = notes.into_iter()
                     .filter(|note| note.next_datetime <= now )
-                    .inspect(|note| {
-                        println!("next: {:?}", note.next_datetime);
-                        println!("now: {:?}", now);
-                    })
                     .take(num)
                     .collect::<Vec<_>>();
                 Result::Ok(notes_to_review)
@@ -169,9 +165,6 @@ fn get_validated_path(
         ).into())
     }
     let path = absolute_path.strip_prefix(&root)?;
-    println!("stripped path: {:?}", path); // debug
-        // .to_string_lossy() // already validated
-        // .to_string();
     Ok(PathBuf::from(path))
 }
 
