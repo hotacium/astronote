@@ -36,6 +36,10 @@ astronote review -n <num>
 
 You can create configuration file (`.astronote.toml`).
 ```toml
-database_path = "/path/to/your/database/file"
+# path to a direcotry which store metadata
+database_path = "/path/to/your/database/"
+# editor to review your file (e.g. nvim, code)
 editor_command = "your_favorite_editor"
+# root directory of files
+root = "."
 ```
