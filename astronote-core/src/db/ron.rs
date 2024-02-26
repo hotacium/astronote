@@ -33,6 +33,9 @@ pub struct NoteRepository {
 
 impl NoteRepository {
     pub fn new(database_root: &Path) -> Result<Self> {
+        if !database_root.exists() {
+            DirBuilder::new().recursive(true).create(database_root)?;
+        }
         Ok(Self {
             database_dir: PathBuf::from(database_root),
         })
