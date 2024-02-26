@@ -15,11 +15,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::FileNotExists(path) => {
-                if let Some(s) = path.to_str() {
-                    write!(f, "Couldn't find the path: {}", s)
-                } else {
-                    write!(f, "Couldn't find the path")
-                }
+                write!(f, "Couldn't find the path: {:?}", path)
             }
         }
     }
