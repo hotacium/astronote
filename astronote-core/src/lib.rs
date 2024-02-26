@@ -5,9 +5,6 @@ pub mod prelude {
     pub use crate::schedulers::SchedulingAlgorithm;
     pub use crate::Note;
     pub use crate::SerializedNote;
-    pub mod sqlite {
-        pub use crate::db::sqlite::NoteRepository;
-    }
 }
 
 use schedulers::{sm2::SuperMemo2, SchedulingAlgorithm};
