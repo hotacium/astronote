@@ -40,7 +40,7 @@ impl Note {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SerializedNote {
     pub id: i64,
     pub relative_path: String,
