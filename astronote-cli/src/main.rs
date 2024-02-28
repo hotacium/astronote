@@ -2,10 +2,7 @@ use astronote_cli::cli::{CommandParser, Commands};
 use astronote_cli::config::Config;
 use astronote_cli::prompt;
 use astronote_core::Note;
-use astronote_core::{
-    db::ron::*,
-    schedulers::sm2::SuperMemo2,
-};
+use astronote_core::db::ron::*;
 use colored::Colorize;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
@@ -51,49 +48,19 @@ async fn main() -> Result<()> {
                 "notes".green()
             );
         }
-        // update file metadata in DB
-        Commands::Update {
-            file,
-            quality,
-            next,
-            new_path,
-            reset,
-        } => {
-            // update note metadata
-            let path = get_validated_path(&file, &config_root)?;
-            let mut note: Note = repo.get_one(&path)?;
-            if let Some(quality) = quality {
-                note.next_datetime = note
-                    .scheduler
-                    .update_and_calculate_next_datetime(quality as u8);
-            }
-            if let Some(next) = next {
-                note.next_datetime = chrono::Local::now()
-                    .naive_local()
-                    .checked_add_days(chrono::Days::new(next as u64))
-                    .ok_or("Error in adding days to datetime")?;
-            }
-            if let Some(new_path) = new_path {
-                let new_path = get_validated_path(&new_path, &config_root).unwrap_or_else(|e| {
-                    panic!("Error in converting path to str: {:?}: {}", new_path, e)
-                });
-                note.relative_path = new_path.to_string_lossy().to_string();
-            }
-            if reset {
-                note.next_datetime = chrono::Local::now().naive_local();
-                note.scheduler = Box::<SuperMemo2>::default();
-            }
-        }
         // main; review file in DB
-        Commands::Review { num } => {
+        Commands::Review { num, ignore_schedule } => {
             // get `num` of old notes
             let notes: Vec<Note> = {
                 let mut notes = repo.get_all()?;
-                notes.sort_by_key(|note| note.next_datetime);
-                let now = chrono::Local::now().naive_local();
+                notes.sort_by_key(|note| note.next_datetime); // sort by date
                 let notes_to_review = notes.into_iter()
-                    .filter(|note| note.next_datetime <= now )
-                    .take(num)
+                    .filter(|note| {
+                        let is_overdue = note.next_datetime <= chrono::Local::now().naive_local();
+                        let ignore_schedule = ignore_schedule.unwrap_or(false);
+                        is_overdue | ignore_schedule
+                    })
+                    .take(num.unwrap_or(std::usize::MAX))
                     .collect::<Vec<_>>();
                 Result::Ok(notes_to_review)
             }?;

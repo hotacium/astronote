@@ -55,37 +55,21 @@ impl CommandParser {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// add file to astronote system
+    /// Add file to astronote system.
     Add {
-        /// target file
-        #[arg(short, long, value_name = "FILE", required = true)]
+        /// Target file to add to astrnote.
+        #[arg(value_name = "FILE")]
         #[arg(num_args = 1.., value_delimiter = ' ')]
         files: Vec<PathBuf>,
     },
-    /// updates repetition state of FILE
-    Update {
-        /// target file
-        #[arg(short, long, value_name = "FILE", required = true)]
-        file: PathBuf,
-        /// quality of answer; from 0 to 6
-        #[arg(short, long, value_name = "0-6")]
-        #[arg(value_parser = clap::value_parser!(u64).range(0..=6))]
-        quality: Option<usize>,
-        /// sets next day after DAYS
-        #[arg(short, long, value_name = "DAYS")]
-        next: Option<usize>,
-        /// mv to PATH
-        #[arg(long, value_name = "PATH")]
-        new_path: Option<PathBuf>,
-        /// reset repetition state
-        #[arg(long)]
-        reset: bool,
-    },
-    /// starts reviewing
+    /// Start reviewing.
     Review {
-        /// number of files to review
+        /// Number of files to review.
         #[arg(short, long, value_name = "NUM")]
-        num: usize,
+        num: Option<usize>,
+        /// Ignore schedule to review; You can review files regardless of their next schedule.
+        #[arg(short, long)]
+        ignore_schedule: Option<bool>,
     },
 }
 
