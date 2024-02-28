@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS notes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    relative_path TEXT NOT NULL UNIQUE,
-    next_datetime TEXT NOT NULL,
-    scheduler JSON NOT NULL
-);
