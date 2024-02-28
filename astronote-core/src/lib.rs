@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Note {
-    pub id: i64,
     pub relative_path: String,
     pub next_datetime: chrono::NaiveDateTime,
     pub scheduler: Box<dyn SchedulingAlgorithm>,
@@ -20,13 +19,11 @@ pub struct Note {
 
 impl Note {
     pub fn new(
-        id: i64,
         relative_path: &str,
         next_datetime: &chrono::NaiveDateTime,
         scheduler: Box<dyn SchedulingAlgorithm>,
     ) -> Self {
         Self {
-            id,
             relative_path: String::from(relative_path),
             next_datetime: *next_datetime,
             scheduler,
@@ -36,13 +33,12 @@ impl Note {
     pub fn new_default(relative_path: &str) -> Self {
         let now = chrono::Local::now().naive_local();
         let sm2 = Box::<SuperMemo2>::default();
-        Self::new(0, relative_path, &now, sm2)
+        Self::new(relative_path, &now, sm2)
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SerializedNote {
-    pub id: i64,
     pub relative_path: String,
     pub next_datetime: chrono::NaiveDateTime,
     pub scheduler: serde_json::Value,
@@ -54,7 +50,6 @@ impl TryFrom<Note> for SerializedNote {
     fn try_from(value: Note) -> Result<Self, Self::Error> {
         let serialized_scheduler = serde_json::to_value(value.scheduler)?;
         Ok(SerializedNote {
-            id: value.id,
             relative_path: value.relative_path,
             next_datetime: value.next_datetime,
             scheduler: serialized_scheduler,
@@ -69,7 +64,6 @@ impl TryInto<Note> for SerializedNote {
         let deserialized_scheduler: Box<dyn SchedulingAlgorithm> =
             serde_json::from_value(self.scheduler)?;
         Ok(Note {
-            id: self.id,
             relative_path: self.relative_path,
             next_datetime: self.next_datetime,
             scheduler: deserialized_scheduler,
@@ -88,7 +82,6 @@ mod tests {
     fn serialize_note() {
         let mut rng = rand::thread_rng();
         let note = Note {
-            id: 0,
             relative_path: String::from("test"),
             next_datetime: NaiveDateTime::default(),
             scheduler: Box::new(SuperMemo2::new(
