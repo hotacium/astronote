@@ -4,13 +4,12 @@ use astronote_cli::prompt;
 use astronote_core::Note;
 use astronote_core::db::ron::*;
 use colored::Colorize;
-
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync + 'static>>;
+use anyhow::{anyhow, Context, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     // load config file
-    let config = Config::try_new()?;
+    let config = Config::try_new().with_context(|| "Failed to build config")?;
     
     let config_root = Path::new(&config.root).canonicalize()?;
 
@@ -52,7 +51,7 @@ async fn main() -> Result<()> {
         Commands::Review { num, ignore_schedule } => {
             // get `num` of old notes
             let notes: Vec<Note> = {
-                let mut notes = repo.get_all()?;
+                let mut notes = repo.get_all().with_context(|| "Failed to retreive note metadata")?;
                 notes.sort_by_key(|note| note.next_datetime); // sort by date
                 let notes_to_review = notes.into_iter()
                     .filter(|note| {
@@ -62,7 +61,7 @@ async fn main() -> Result<()> {
                     })
                     .take(num.unwrap_or(std::usize::MAX))
                     .collect::<Vec<_>>();
-                Result::Ok(notes_to_review)
+                anyhow::Ok(notes_to_review)
             }?;
             if notes.len() < 1 {
                 println!("There is no file to review (for now)!");
@@ -91,7 +90,7 @@ async fn main() -> Result<()> {
                     .status()?
                     .success()
                     .then_some(())
-                    .ok_or("Status is not success")?;
+                    .ok_or(anyhow!("Status is not success"))?;
 
                 // update the metadata
                 let quality = input_quality(&note);
@@ -108,7 +107,7 @@ async fn main() -> Result<()> {
                 println!();
 
                 // store the updated metadata into DB
-                repo.update(vec![note])?;
+                repo.update(vec![note]).with_context(|| "Failed to update note metadata")?;
             }
         }
     }
@@ -125,11 +124,11 @@ fn get_validated_path(
 ) -> Result<PathBuf> {
     let absolute_path = canonicalize(path)?;
     if !absolute_path.try_exists()? {
-        return Err(format!(
+        return Err(anyhow!(format!(
             "File does not exist. Maybe file path is not under astronote `root`. Hint: root: {}, path: {}", 
             root.to_str().unwrap(), 
             path.to_str().unwrap(),
-        ).into())
+        )))
     }
     let path = absolute_path.strip_prefix(&root)?;
     Ok(PathBuf::from(path))
@@ -179,9 +178,4 @@ fn input_quality(note: &Note) -> u32 {
             input_quality(note)
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 }

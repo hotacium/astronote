@@ -1,35 +1,6 @@
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use std::{io::Write, path::PathBuf};
-
-#[derive(Debug)]
-pub enum Error {
-    DBURLNotFound,
-    URLIsNotValidUTF8(PathBuf),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::DBURLNotFound => write!(f, "Database URL is not found"),
-            Self::URLIsNotValidUTF8(path) => {
-                write!(
-                    f,
-                    "Database URL is not valid UTF-8: {}",
-                    path.to_string_lossy()
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::DBURLNotFound => None,
-            Self::URLIsNotValidUTF8(_) => None,
-        }
-    }
-}
 
 #[derive(Parser)]
 #[command(about = "astronote is a tool for spaced repetition", long_about = None)]
@@ -46,10 +17,15 @@ impl CommandParser {
     pub fn parse_args() -> Self {
         Self::parse()
     }
-    pub fn database_path(&self) -> Result<String, Error> {
-        let url = self.database_path.as_ref().ok_or(Error::DBURLNotFound)?;
-        let url = url.to_str().ok_or(Error::URLIsNotValidUTF8(url.clone()))?;
-        Ok(url.to_string())
+    pub fn database_path(&self) -> Result<String> {
+        let path = self
+            .database_path
+            .as_ref()
+            .ok_or(anyhow!("Path to metadata database was not provided"))?;
+        let path = path
+            .to_str()
+            .ok_or(anyhow!("{:?} is not valid UTF-8", path))?;
+        Ok(path.to_string())
     }
 }
 
